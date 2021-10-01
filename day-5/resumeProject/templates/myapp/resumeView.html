@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container">
+    Resume
+
+    <p>ID : {{ resume.id }}</p>
+    <p>Name : {{ resume.name }}</p>
+    <img src="{{ resume.profile_image.url }}">
+    <p>{{ resume.profile_image.url }}</p>
+  
+
+</div>
+
+{% endblock %}
