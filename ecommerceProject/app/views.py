@@ -39,8 +39,38 @@ class ProductDetailView(View):
 
 
 def add_to_cart(request):
-    return render(request, 'app/addtocart.html')
+    user = request.user 
+    product_id = request.GET.get('prod_id')
+    product = Product.objects.get(id=product_id)
+    Cart(
+        user=user , 
+        product=product, 
+    ).save() 
+    return redirect('showcart')
 
+def show_cart(request): 
+    if request.user.is_authenticated: 
+        user = request.user
+        cart = Cart.objects.filter(user=user)
+        print (cart)
+        amount = 0.0 
+        shipping_amount = 70.0 
+        total_amount = 0.0
+        if cart: 
+            for p in cart: 
+                tempamount = (p.quantity * p.product.discounted_price) 
+                amount += tempamount
+                total_amount = amount + shipping_amount
+        print (total_amount)
+        context = {
+            "carts": cart , 
+            "amount": amount, 
+            "totalamount" : total_amount, 
+            "shippingamount": shipping_amount, 
+        }
+        return render(request, 'app/addtocart.html', context)
+    else: 
+        return redirect('login')
 
 def buy_now(request):
     return render(request, 'app/buynow.html')
@@ -91,7 +121,11 @@ def address(request):
 
 
 def orders(request):
-    return render(request, 'app/orders.html')
+    op = OrderPlaced.objects.filter(user=request.user)
+    context = {
+        'order_placed': op
+    }
+    return render(request, 'app/orders.html', context)
 
 
 def change_password(request):
@@ -103,6 +137,7 @@ def mobile(request, data=None):
         mobiles = Product.objects.filter(category='M')
     elif data == 'Redmi' or data == 'Samsung': 
         mobiles = Product.objects.filter(category='M').filter(brand=data)
+
     context = {
         'mobiles': mobiles
     }
@@ -135,4 +170,36 @@ class CustomerRegistrationView(View):
 # class base
 
 def checkout(request):
-    return render(request, 'app/checkout.html')
+    user = request.user 
+    add = Customer.objects.filter(user=user)
+    cart_items = Cart.objects.filter(user=user)
+    amount = 0.0
+    shipping_amount = 70.0
+    total_amount = 0.0
+    if cart_items : 
+        for p in cart_items: 
+            tempamount = (p.quantity * p.product.discounted_price)
+            amount += tempamount 
+            total_amount = amount + shipping_amount
+    context = {
+        'cart_items' : cart_items, 
+        'add': add, 
+        'totalamount': total_amount
+    }
+    return render(request, 'app/checkout.html', context)
+
+
+def payment_done(request): 
+    user = request.user 
+    custid = request.GET.get('custid')
+    customer = Customer.objects.get(id=custid)
+    cart = Cart.objects.filter(user=user)
+    for c in cart : 
+        OrderPlaced(
+            user = user , 
+            customer = customer, 
+            product = c.product, 
+            quantity = c.quantity
+        ).save() 
+        c.delete() 
+    return redirect('orders')
